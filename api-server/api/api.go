@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,6 +22,10 @@ var tasks = []Task{
 
 func InitServer() {
 	r := gin.Default()
+
+	// [TMP]All Origin Allowed
+	r.Use(cors.Default())
+
 	r.GET("/tasks", getTasks)
 
 	r.Run("localhost:8080")
