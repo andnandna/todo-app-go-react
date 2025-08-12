@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/andnandna/todo-app-go-react/database"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -13,17 +14,13 @@ type Task struct {
 	IsCompleted bool   `json:"isCompleted"`
 }
 
-// for debug
-var tasks = []Task{
-	{ID: 1, Title: "りんごを買う", IsCompleted: false},
-	{ID: 2, Title: "散歩する", IsCompleted: false},
-	{ID: 3, Title: "猫にご飯をあげる", IsCompleted: true},
-}
+// memo: mainで接続したやつをそのまま使えない
+var dbClient = database.GetDB()
 
 func InitServer() {
 	r := gin.Default()
 
-	// [TMP]All Origin Allowed
+	// [TMP]All Origins Allowed
 	r.Use(cors.Default())
 
 	r.GET("/tasks", getTasks)
@@ -32,5 +29,25 @@ func InitServer() {
 }
 
 func getTasks(context *gin.Context) {
+	var tasks []Task
+
+	rows, err := dbClient.Query("SELECT * FROM tasks")
+	if err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var task Task
+		if err := rows.Scan(&task.ID, &task.Title, &task.IsCompleted); err != nil {
+			context.IndentedJSON(http.StatusInternalServerError, err)
+		}
+		tasks = append(tasks, task)
+	}
+
+	if err := rows.Err(); err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
 	context.IndentedJSON(http.StatusOK, tasks)
 }
