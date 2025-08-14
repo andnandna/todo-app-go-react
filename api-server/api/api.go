@@ -14,9 +14,6 @@ type Task struct {
 	IsCompleted bool   `json:"isCompleted"`
 }
 
-// memo: mainで接続したやつをそのまま使えない
-var dbClient = database.GetDB()
-
 func InitServer() {
 	r := gin.Default()
 
@@ -24,6 +21,9 @@ func InitServer() {
 	r.Use(cors.Default())
 
 	r.GET("/tasks", getTasks)
+	r.POST("/tasks", createTasks)
+	r.PUT("/tasks", editTasks)
+	r.DELETE("/tasks", deleteTasks)
 
 	r.Run("localhost:8080")
 }
@@ -31,7 +31,7 @@ func InitServer() {
 func getTasks(context *gin.Context) {
 	var tasks []Task
 
-	rows, err := dbClient.Query("SELECT * FROM tasks")
+	rows, err := database.DBClient.Query("SELECT * FROM tasks")
 	if err != nil {
 		context.IndentedJSON(http.StatusInternalServerError, err)
 	}
@@ -50,4 +50,47 @@ func getTasks(context *gin.Context) {
 	}
 
 	context.IndentedJSON(http.StatusOK, tasks)
+}
+
+func createTasks(context *gin.Context) {
+	var newTask Task
+	if err := context.BindJSON(&newTask); err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
+	_, err := database.DBClient.Exec("INSERT INTO tasks (title, isCompleted) VALUES (?, ?)", newTask.Title, false)
+	if err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
+	context.IndentedJSON(http.StatusCreated, nil)
+}
+
+func editTasks(context *gin.Context) {
+	var task Task
+	if err := context.BindJSON(&task); err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
+	_, err := database.DBClient.Exec("UPDATE tasks SET title = ?, isCompleted = ? WHERE id = ?", task.Title, task.IsCompleted, task.ID)
+	if err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
+	context.IndentedJSON(http.StatusNoContent, nil)
+}
+
+func deleteTasks(context *gin.Context) {
+	var task Task
+	if err := context.BindJSON(&task); err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
+	_, err := database.DBClient.Exec("DELETE FROM tasks WHERE id = ?", task.ID)
+
+	if err != nil {
+		context.IndentedJSON(http.StatusInternalServerError, err)
+	}
+
+	context.IndentedJSON(http.StatusNoContent, nil)
 }

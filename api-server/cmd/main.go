@@ -7,5 +7,6 @@ import (
 
 func main() {
 	database.InitDB()
+	defer database.CloseDB()
 	api.InitServer()
 }

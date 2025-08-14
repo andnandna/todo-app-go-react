@@ -8,7 +8,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-var dbClient *sql.DB
+var DBClient *sql.DB
 
 func InitDB() {
 	cfg := mysql.NewConfig()
@@ -18,22 +18,18 @@ func InitDB() {
 	cfg.DBName = "todo_go_react"
 
 	var err error
-	dbClient, err = sql.Open("mysql", cfg.FormatDSN())
+	DBClient, err = sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	pingErr := dbClient.Ping()
+	pingErr := DBClient.Ping()
 	if pingErr != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("DB connected.")
 }
 
-func GetDB() *sql.DB {
-	// memo: mainで接続してもapi.goでそのまま使えず、このチェックを入れている
-	if dbClient == nil {
-		InitDB()
-	}
-	return dbClient
+func CloseDB() {
+	DBClient.Close()
 }
